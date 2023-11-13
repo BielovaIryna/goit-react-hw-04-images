@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+
 import { Searchbar } from './Searchbar/Searchbar'
 import { ImageGallery } from './ImageGallery/ImageGallery'
 import { Button } from './Button/Button'
@@ -8,83 +8,90 @@ import { fetchPixabay } from './pixabay-api'
 import { Loader } from './Loader'
 import { Notify } from 'notiflix'
 import css from './App.module.css'
-export class App extends Component {
-  state = {
-    images:null,
-    isLoading:false,
-    error:null,
-    request:"",
-    page: 1,
-    totalHits:null,
-    isOpenModal:false,
-    imageData:null,
+import { useEffect, useState } from 'react'
+export const App =()=> {
+  const [images, setImages] = useState([]);
+  const [isLoading, setIsLoading]=useState (false);
+const [error, setError]=useState (null);
+const [request, setRequest]=useState ("");
+const [page, setPage]=useState (1);
+const [totalHits, setTotalHits]=useState (null)
+const [isOpenModal, setIsOpenModal]=useState (false)
+const [imageData, setImageData]=useState (null)
+  
+useEffect (()=>{
+  if (!request) {
+    return;
   }
-  fetchImages = async (request, page) => {
+  const fetchImages = async () => {
     try {
-      this.setState({isLoading:true})
+      setIsLoading(true)
       const data = await fetchPixabay(request, page);
-      if(this.state.images === null) {
-      this.setState({images:data.hits, totalHits:data.totalHits})
+      if(page === 1) {
+        setImages(data.hits);
+        setTotalHits(data.totalHits)
+      
       
     } else{
-        this.setState(prevState =>({images:[...prevState.images, ...data.hits]}))
+        setImages(prevState =>[...prevState, ...data.hits])
       }
       
      
     } catch (error) {
-      this.setState({error:error.message});
+      setError(error.message);
     }finally{
-      this.setState({isLoading:false})
+      setIsLoading(false)
     }
   }
-openModal =imageData=>{
-  this.setState({imageData:imageData, isOpenModal:true})
-}
-closeModal = () =>{
-  this.setState({isOpenModal:false, imageData:null});
-}
- handlerSubmit = request =>{
-  this.setState({page:1, images:null, request:request});
-}
- handlerLoadMore =()=>{
-  this.setState(prevState => ({page:prevState.page+1}));
+  fetchImages()
+}, [page, request])
+  
+const openModal =imageData=>{
+  setImageData(imageData)
+  setIsOpenModal(true)
   
 }
- componentDidUpdate(_, prevState){
-  if(prevState.request!==this.state.request){
-    this.fetchImages(this.state.request, this.state.page)
-  }
-   if(prevState.page!==this.state.page){
-    this.fetchImages(this.state.request, this.state.page)
-  }
- }
+const closeModal = () =>{
+  setIsOpenModal(false)
+  setImageData(null)
+  
+}
+ const handlerSubmit = request =>{
+  setPage(1);
+  setImages([]);
+  setRequest(request);
+  
+}
+ const handlerLoadMore =()=>{
+  setPage(prevState => prevState+1);
+  
+}
 
-  render() {
-    const{isLoading, error, images, totalHits, isOpenModal, imageData} = this.state
     return (
       <div className={css.App}>
        <Searchbar
-        onSubmit={this.handlerSubmit}/>
+        onSubmit={handlerSubmit}/>
+
         {error&& Notify.failure(`Ooops something went wrong: ${error.message}`)}
         {isLoading&&<Loader/>}
       {images !== null && 
       <>
        <ImageGallery
        images = {images}
-       openModal={this.openModal}
+       openModal={openModal}
 
        />
        {totalHits>12&& <Button
-     click ={this.handlerLoadMore}/>}
+     click ={handlerLoadMore}/>}
      
      </>}
        
       {isOpenModal&&(
             <Modal
-            closeModal={this.closeModal}
+            closeModal={closeModal}
             imageData={imageData}/>)}
       </div>
     )
-  }
+  
 }
 
